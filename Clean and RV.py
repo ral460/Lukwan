@@ -9,9 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
 def main():
-    
+
     # df = readData()
     
     # All data already cleaned
@@ -19,7 +18,7 @@ def main():
     
     # All RV's already in a dataframe
     RV = pd.read_csv('C:/Users/rafam/Downloads/EOR/Master/P3/Code/AllRV.csv')
-    
+
     # Calculate RVsparse
     sparse = RVsparse(df)
     
@@ -47,7 +46,7 @@ def main():
     print(returns)
 
     # Printing and plotting the results
-    results(RV)
+    plotRV(RV)
     
     # Calculating daily returns, using various open and closing measures
     log_returns_close,log_returns_co, log_returns_oc ,factor = log_returns(df)
@@ -63,24 +62,25 @@ def main():
     r['open to close'] = log_returns_oc
     r.to_csv('returns.csv', index=False)    
     
+def plotRV(df):
     
-def results(RV):
-    
-    plt.plot(RV['Parzen H var'])
-    plt.show()    
-    plt.plot(RV['QV Parzen'])
-    plt.show()
-    plt.plot(RV['RVdense'])
-    plt.show()
-    plt.plot(RV['RVsparse'])
-    plt.show()
-    
-    print('Mean of Quadrratic variance using Parzen Kernel with updating H',np.mean(RV['Parzen H var']))
-    print('Mean of Quadrratic variance using Parzen Kernel with H=30',np.mean(RV['QV Parzen']))
-    print('Mean of RVdense',np.mean(RV['RVdense']))
-    print('Mean of RVsparse',np.mean(RV['RVsparse']))
-    
-        
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    df.set_index('DATE', inplace=True)
+    columns_to_plot = ['H=30', 'RVsparse', 'RVdense']
+    for column in columns_to_plot:
+        df[column] = pd.to_numeric(df[column])/10
+        plt.figure(figsize=(10, 6))
+        plt.plot(df.index, df[column], label=column, color='blue')
+        plt.xlabel('Year')
+        plt.ylabel('Realized Variance')
+        plt.title(f'Realized Variance - {column}')
+        plt.xticks(pd.date_range(start='2016-01-04', end='2024-01-01', freq='AS'))  # Annual frequency starting from 2016
+        plt.gca().xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%Y'))
+        plt.legend()
+        plt.show()
+        print(f'Mean of {column}: {np.mean(df[column])}')
+
+
 def log_returns(df):
     # Convert 'time' to datetime type for sorting
     df['TIME_M'] = pd.to_datetime(df['TIME_M'], format='%H:%M:%S.%f')
@@ -143,7 +143,6 @@ def RVsparse(df):
 
     return sparse    
   
-
 def RVdense(df):
     
     q = 25
@@ -213,8 +212,7 @@ def efficient_kernel(df,zeta, variableH, H):
             
         result_per_day.append(result)
             
-    return result_per_day, H
-
+    return result_per_day, Hs
 
 def readData():
     df = readAll()
