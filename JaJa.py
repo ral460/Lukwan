@@ -393,7 +393,6 @@ def main():
     sigma2_epsilon = 15099
     sigma2_eta = 1469.1
     
-    
     df1 = df
     original_years = df1.iloc[:, 0].tolist()
     new_years = range(max(original_years) + 1, max(original_years) + 31)
@@ -410,9 +409,10 @@ def main():
     #2.4
     simulation(y,year,sigma2_epsilon,sigma2_eta,epsilon, alpha,eta,P1)
     #2.5
-    missingFilter(df, P1, sigma2_epsilon, sigma2_eta)
+    P, a, v, F, K = missingFilter(df, P1, sigma2_epsilon, sigma2_eta)
     missingSmoothing(df, P, a, v, F, K)
     #2.6
+    P,a,v,F,K = kalmanFilter(y, year,P1,sigma2_epsilon,sigma2_eta)
     forecast(result_df,P1,sigma2_epsilon,sigma2_eta)
     #2.7
     check(v, F, df, year)
