@@ -17,6 +17,10 @@ import math
 import random
 import sys
 import statsmodels.api as sm
+from scipy.stats import probplot
+import seaborn as sns
+
+
 
 ###########################################################
 
@@ -208,7 +212,6 @@ def plotMissingFilter(df,P,a,v):
     plt.plot(year,a[1:],c='black',linewidth=1)
     plt.show()
     
-    P = P/10
     plt.plot(year, P[1:],c='black',linewidth=1)
     plt.yticks(np.arange(2500,35001,10000))
     plt.show()
@@ -243,7 +246,7 @@ def missingFilter(df,P1,sigma2_epsilon,sigma2_eta):
         if i >= len(df)-1:
             break 
                     
-        P[i+1] = P[i] * (1 - K[i]) + sigma2_eta * (numb_missing + 1)
+        P[i+1] = P[i] * (1 - K[i]) + sigma2_eta
        
         a[i+1] = a[i] + (K[i]* v[i])
     
@@ -251,10 +254,10 @@ def missingFilter(df,P1,sigma2_epsilon,sigma2_eta):
     
     return P,a,v,F,K
 
-
+    
 def missingSmoothing(df,P,a,v,F,K):
     df.loc[df.index[20:40].append(df.index[60:80]), 'Nile'] = np.nan
-
+    
     z = 0.674
     r = np.zeros(len(P)+1)
     N = np.zeros(len(P)+1)
@@ -264,8 +267,7 @@ def missingSmoothing(df,P,a,v,F,K):
     
     numb_missing = 0
     for i in reversed(range(len(P))):
-        if pd.isna(df['Nile'][i]):
-            
+        if (pd.isna(df['Nile'][i])):
             numb_missing += 1
             r[i] = r[i+1]
             K[i] = 0
@@ -293,13 +295,12 @@ def plotMissingSmoothing(df,V,alpha,r,N,UB,LB):
     plt.plot(year,alpha[1:],c='black',linewidth=1)
     plt.show()
     
-    V = V/10
-    plt.plot(year, V[1:],c='black',linewidth=1)
-    plt.yticks(np.arange(2500,10000,2500))
+    plt.plot(df.iloc[:,0], V, c='black',linewidth=1)
+    plt.yticks(np.arange(2500,10001,2500))
     plt.show()
 
 
-def plotForecast(df,P,a,v,F,UB,LB, expY):
+def plotForecast(df,P,a,v,F,UB,LB):
     year = df.iloc[1:,0]
     
     plt.scatter(df.iloc[:,0],df['Nile'],s=10, c='black',linewidth=1)
@@ -317,8 +318,7 @@ def plotForecast(df,P,a,v,F,UB,LB, expY):
     plt.yticks(np.arange(5000,50001,10000))
     plt.show()
     
-    #??????????????????? observation forecast E(yt|Yt-1)
-    plt.plot(year,expY[1:],c='black',linewidth=1)
+    plt.plot(year,a[1:],c='black',linewidth=1)
     plt.yticks(np.arange(700,1200,100))
     plt.show()
     
@@ -333,7 +333,6 @@ def forecast(df,P1,sigma2_epsilon,sigma2_eta):
     P = np.zeros(len(df))
     F = np.zeros(len(df))
     K = np.zeros(len(df))
-    expY = np.zeros(len(df))
 
     P[0] = P1
     numb_missing = 0
@@ -354,15 +353,13 @@ def forecast(df,P1,sigma2_epsilon,sigma2_eta):
         if i >= len(df)-1:
             break
         
-        if(i > 1):
-            expY[i] = df['Nile'][i-max(numb_missing,1)]
 
         P[i+1] = P[i] * (1 - K[i]) + sigma2_eta
-       
+                
         a[i+1] = a[i] + (K[i]* v[i])
         
     LB,UB = CI(a,P,z)
-    plotForecast(df,P,a,v,F,UB,LB, expY)
+    plotForecast(df,P,a,v,F,UB,LB)
     
     return P,a,v,F,K
 
@@ -370,14 +367,28 @@ def check(nu_t, F, df, year):
     
     et = nu_t/np.sqrt(F)
     
-    plt.plot(year[1:], et[1:])
+    plt.plot(year[1:], et[1:], c='black',linewidth=1)
+    plt.axhline(0, color='black', linestyle='-', linewidth=1, alpha = 0.5)
     plt.show()
     
-    plt.hist(et[1:], bins = 13, density = True)
+    plt.hist(et[1:], bins=13, density=True, edgecolor='black', facecolor='white', linewidth=1)
+    sns.kdeplot(et[1:], color='black', linewidth=1)
+    plt.xlim(-4, 3.75)
+    plt.xticks(np.arange(-3, 4, 1))
     plt.show()
     
-    sm.qqplot(et[1:], line = '45')
+    sm.qqplot(et[1:], line='45', fit=True, color='black', linestyle='-', )
     plt.show()
+    
+    acf_values = sm.tsa.acf(et[1:], nlags=10, alpha=None, fft=True)
+    plt.bar(range(1, 11), acf_values[1:], color='black')
+    plt.ylim(-1, 1)
+    plt.yticks(np.arange(-1, 1.1, 0.5))
+    plt.xlim(0, 11)
+    plt.xticks(np.arange(0, 11, 5))
+    plt.axhline(0, color='black', linestyle='-', linewidth=1, alpha = 0.5)
+    plt.show()
+    
     
     # Dit klopt nog niet helemaal en weet niet of ik de goeie nu import, ff checken
     
@@ -409,7 +420,7 @@ def main():
     #2.4
     simulation(y,year,sigma2_epsilon,sigma2_eta,epsilon, alpha,eta,P1)
     #2.5
-    P, a, v, F, K = missingFilter(df, P1, sigma2_epsilon, sigma2_eta)
+    P,a,v,F,K = missingFilter(df, P1, sigma2_epsilon, sigma2_eta)
     missingSmoothing(df, P, a, v, F, K)
     #2.6
     P,a,v,F,K = kalmanFilter(y, year,P1,sigma2_epsilon,sigma2_eta)
