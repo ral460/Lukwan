@@ -54,78 +54,60 @@ def b(y):
     plt.show()
     
     return x
-
     
-def kalmanFilter(y,P1,kappa,sigma2_eta,psi):
-    z = 1.645
+def kalmanFilter(y, kappa, sigma2_eta, psi):
     v = np.zeros(len(y))
     a = np.zeros(len(y))
     P = np.zeros(len(y))
     F = np.zeros(len(y))
     K = np.zeros(len(y))
-    xi = np.random.normal(0, np.sqrt(4.93), len(y))
-    eta = np.random.normal(0, np.sqrt(sigma2_eta), len(y))
+    a[0] = 0
 
-    P[0] = 0
+    P[0] = sigma2_eta / (1 - math.pow(psi, 2))
     for i in range(len(y)):
-        # v[i] = y[i] - a[i]
-        y[i] = kappa + a[i] + xi[i]
-        F[i] = P[i] + xi[i]
-        K[i] = P[i]/F[i]
-        
-        if i >= len(y)-1:
-            break 
-        
-        a[i+1] = psi*a[i] + eta[i]
-        P[i+1] = P[i] * (1 - K[i]) + sigma2_eta
-        
-    LB,UB = CI(a,P,z)
-    
-    return P,a,v,F,K    
+        v[i] = y[i] - a[i] - kappa
+        F[i] = P[i] + 4.93
+        K[i] = P[i] / F[i]
 
-def CI(a,P,z):
-    LB = a - (z * np.sqrt(P))
-    UB = a +  (z * np.sqrt(P))
-    
-    return LB,UB
+        if i >= len(y) - 1:
+            break
 
-def estimate(y,P1):
-    params = {
-        "kappa": {"x0": 10, "lbub": [-1000,1000]},
-        "sigma2_eta": {"x0": 100, "lbub": [-1000,1000]},
-        "psi": {"x0": 10, "lbub": [-1000,1000]},
-          }
-    x0 = [param["x0"] for key, param in params.items()]
-    bnds = [param["lbub"] for key, param in params.items()]
-    result = minimize(llllm,  x0,args=(y,P1), tol = 1e-6,method='Nelder-Mead', options = {'disp': True})
-    print('ll',result)
-    print(result.x)
+        a[i + 1] = psi * a[i] + K[i] * v[i]
+        P[i + 1] = P[i] * (1 - K[i]) + sigma2_eta
 
-def llllm(params, y,P1):
+    return P, a, v, F, K
+
+def llllm(params, y):
     kappa, sigma2_eta, psi = [param for param in params]
     
-    v = np.zeros(len(y))
-    P = np.zeros(len(y))
-    F = np.zeros(len(y))
-    K = np.zeros(len(y))
+    P, a, v, F, K = kalmanFilter(y, kappa, sigma2_eta, psi)
     
-    P[0] = P1
-    #ll = 0
-    
-    P,a,v,F,K = kalmanFilter(y,P1,kappa,sigma2_eta,psi)
-    
-    ll = len(y)*0.5*np.log(2*np.pi) + 0.5*sum((np.log(F) + ((v**2))/(F)))
+    ll = len(y) * 0.5 * np.log(2 * np.pi) + 0.5 * sum((np.log(F) + ((v**2)) / F))
     
     return ll
+
+def estimate(y):
+    params = {
+        "kappa": {"x0": np.mean(y), "bounds": [-100, 100]},
+        "sigma2_eta": {"x0": 1, "bounds": [0.001, 1000]},
+        "psi": {"x0": 0.9, "bounds": [-0.99, 0.99]},
+    }
+    
+    x0 = [param["x0"] for key, param in params.items()]
+    bounds = [param["bounds"] for key, param in params.items()]
+    
+    result = minimize(llllm, x0, args=(y,), bounds=bounds, tol=1e-6, method='L-BFGS-B', options={'disp': False})
+    
+    print('ll', result)
+    print(result.x)
     
 def main():
     df = pd.read_excel('C:/Users/rafam/Downloads/EOR/Master/P4/TS/Assignment 2/sv.xlsx')
     # Log returns multiplied by 100
-    P1 = 0
     
     y = a(df)
     x = b(y)
-    estimate(x,P1)
+    estimate(x)
 
     
 ###########################################################
