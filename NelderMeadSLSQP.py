@@ -21,7 +21,7 @@ from scipy.stats import probplot
 import seaborn as sns
 from scipy.optimize import minimize
 
-def a(df):
+def aa(df):
     # Log returns
     y = df.iloc[:,0]/100
     plt.figure(figsize=(12, 6))
@@ -63,9 +63,11 @@ def kalmanFilter(y ,P1,kappa, sigma2_eta, psi):
     Ptt = np.zeros(len(y))
     F = np.zeros(len(y))
     K = np.zeros(len(y))
-    a[0] = random.gauss(0,np.sqrt(P[0]))
+    
     P1 = sigma2_eta / (1 - math.pow(psi, 2))
     P[0] = P1
+    a[0] = random.gauss(0,np.sqrt(P[0]))
+    
     for i in range(len(y)):
         v[i] = y[i] - a[i] - kappa
         F[i] = P[i] + 4.93
@@ -73,12 +75,12 @@ def kalmanFilter(y ,P1,kappa, sigma2_eta, psi):
         
         if i >= len(y) - 1:
             break
+        
         att[i] = a[i] + P[i]*v[i]/F[i]
         a[i+1] = psi*att[i]
-        #a[i + 1] = psi * a[i] + K[i] * v[i]
+        
         Ptt[i] = P[i] - (P[i]**2)/F[i]
-        P[i + 1] = (psi**2)*Ptt[i] + sigma2_eta
-        #P[i] * (1 - K[i]) + sigma2_eta
+        P[i+1] = (psi**2)*Ptt[i] + sigma2_eta
     
     return P,a,v,F,K
 
@@ -92,7 +94,6 @@ def llllm(params, y,P1):
     K = np.zeros(len(y))
     
     P[0] = P1
-    #ll = 0
     
     P,a,v,F,K = kalmanFilter(y, P1, kappa, sigma2_eta, psi)
     
@@ -107,7 +108,6 @@ def estimate(y,P1):
     #psi_0 = (np.cov(xt_1,xt))[0][1]/(np.var(y) - (np.pi)**2/2
     psi_0 = 0.95
     sigma2_eta_0 = (1-psi_0**2)*(np.var(y)- (np.pi)**2/2)
-    print(sigma2_eta_0)
     params = {
         "kappa": {"x0": np.mean(y), "bounds": [-100, 100]},
         "sigma2_eta": {"x0": sigma2_eta_0, "bounds": [0.001, 1000]},
@@ -117,18 +117,56 @@ def estimate(y,P1):
     x0 = [param["x0"] for key, param in params.items()]
     result = minimize(llllm,  x0,args=(y,P1), tol = 1e-6,method='Nelder-Mead', options = {'disp': True})
     print('ll',result)
-    print(result.x)
-
+    estParams = result.x
     
+    return estParams
+    
+
+def kalmanSmoothing(y,P,a,v,F,K):
+    r = np.zeros(len(P)+1)
+    N = np.zeros(len(P)+1)
+    
+    alpha = np.zeros(len(P))
+    V = np.zeros(len(P))
+    
+    for i in reversed(range(len(P))):
+        
+        r[i] =  (pow(F[i],-1) * v[i]) + (1-K[i]) * r[i+1]
+        N[i] =  pow(F[i],-1) + ((1-K[i])**2) * N[i+1]
+        
+        alpha[i] = a[i] + (P[i] * r[i])
+        V[i] = P[i] - ((P[i]**2) * N[i])
+    #
+    return alpha,V,r[1:],N[1:]
+
 def main():
     df = pd.read_excel('C:/Users/rafam/Downloads/EOR/Master/P4/TS/Assignment 2/sv.xlsx')
     # Log returns multiplied by 100
     
-    y = a(df)
+    y = aa(df)
     x = b(y)
 
     P1 = 1
-    estimate(x, P1)
+    estParams = estimate(x, P1)
+    print(estParams)
+    
+    kappa, sigma2_eta, psi = [param for param in estParams]
+    P,a,v,F,K = kalmanFilter(x, P1, kappa, sigma2_eta, psi)
+    plt.figure(figsize = (12,6))
+    plt.plot(range(len(a)),a)
+    
+    alpha,V,r,N = kalmanSmoothing(x,P,a,v,F,K)
+    plt.plot(range(len(alpha)),alpha)
+
+    plt.show()
+    
+    sys.exit()
+    
+    plt.figure(figsize=(12, 6))
+    plt.plot(x, c = 'black')
+    plt.plot(alpha)
+    plt.show()
+
     
 ###########################################################
 ### call main
