@@ -20,6 +20,8 @@ import statsmodels.api as sm
 from scipy.stats import probplot
 import seaborn as sns
 from scipy.optimize import minimize
+from scipy.stats import t
+
 
 def aa(df):
     # Log returns
@@ -68,6 +70,8 @@ def kalmanFilter(y ,P1,kappa, sigma2_eta, psi):
     P[0] = P1
     a[0] = random.gauss(0,np.sqrt(P[0]))
     
+    # print(a[0])
+    
     for i in range(len(y)):
         v[i] = y[i] - a[i] - kappa
         F[i] = P[i] + 4.93
@@ -97,7 +101,7 @@ def llllm(params, y,P1):
     
     P,a,v,F,K = kalmanFilter(y, P1, kappa, sigma2_eta, psi)
     
-        
+    
     ll = len(y)*0.5*np.log(2*np.pi) + 0.5*sum((np.log(F) + ((v**2))/(F)))
     return ll
 
@@ -106,8 +110,8 @@ def estimate(y,P1):
     xt_1 = y[1:]
     
     #psi_0 = (np.cov(xt_1,xt))[0][1]/(np.var(y) - (np.pi)**2/2
-    psi_0 = 0.95
-    sigma2_eta_0 = (1-psi_0**2)*(np.var(y)- (np.pi)**2/2)
+    psi_0 = 0.99
+    sigma2_eta_0 = (1-psi_0**2)*(np.var(y)- ((np.pi)**2)/2)
     params = {
         "kappa": {"x0": np.mean(y), "bounds": [-100, 100]},
         "sigma2_eta": {"x0": sigma2_eta_0, "bounds": [0.001, 1000]},
@@ -115,13 +119,12 @@ def estimate(y,P1):
     }
     
     x0 = [param["x0"] for key, param in params.items()]
-    result = minimize(llllm,  x0,args=(y,P1), tol = 1e-6,method='Nelder-Mead', options = {'disp': True})
+    result = minimize(llllm,  x0,args=(y,P1), tol = 1e-6, method='Nelder-Mead', options={'maxiter': 500, 'disp': True})
     print('ll',result)
     estParams = result.x
     
     return estParams
     
-
 def kalmanSmoothing(y,P,a,v,F,K):
     r = np.zeros(len(P)+1)
     N = np.zeros(len(P)+1)
@@ -159,12 +162,10 @@ def main():
     plt.plot(range(len(alpha)),alpha)
 
     plt.show()
-    
-    sys.exit()
-    
+        
     plt.figure(figsize=(12, 6))
-    plt.plot(x, c = 'black')
-    plt.plot(alpha)
+    plt.scatter(range(len(x)),x, color = 'black')
+    plt.plot(kappa + alpha, c = 'red', linewidth = 5)
     plt.show()
 
     
