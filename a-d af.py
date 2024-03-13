@@ -83,6 +83,7 @@ def kalmanFilter(y ,kappa, sigma2_eta, psi):
         
         att[i] = a[i] + (P[i]*v[i])/F[i]
         a[i+1] = psi*att[i]
+        # Beta[i+1] = Beta[i]
         
         Ptt[i] = P[i] - (P[i]**2)/F[i]
         P[i+1] = (psi**2)*Ptt[i] + sigma2_eta
@@ -140,7 +141,6 @@ def kalmanSmoothing(y,P,a,v,F,K):
 
 def RVdata():
     RV = pd.read_csv('C:/Users/rafam/Downloads/EOR/Master/P4/TS/Assignment 2/realized_volatility.csv')
-    print(RV)
     RV = RV[RV['Symbol'] == '.SPX']
     RV['date'] = RV['date'].str.split(' ').str[0]
     RV['date'] = pd.to_datetime(RV['date'], format='%Y-%m-%d')
@@ -156,8 +156,6 @@ def RVdata():
 
     # Reset the index
     RV = RV.reset_index(drop=True)
-
-    print(RV)
 
     y = RV['Log Returns'].values
     plt.figure(figsize=(10, 6))
@@ -199,9 +197,12 @@ def results(estParams, x):
     plt.scatter(range(len(x)),x, color = 'black')
     plt.plot(kappa + alpha, c = 'red', linewidth = 5)
     plt.show()
-    
+
+    plt.figure(figsize=(12, 6))    
     plt.plot(np.exp(alpha/2))
     plt.show()
+    
+    return v, F, kappa
 
 def main():
    
@@ -216,19 +217,18 @@ def main():
     
     # Part C & D
     estParams = estimate(x)
-    results(estParams, x)
+    v, F, kappa = results(estParams, x)
         
     # Part E: revisit A-D with S&P 500 data
     RV, ySP = RVdata()
     x = b(ySP)
     estParams = estimate(x)
-    results(estParams, x)
+    v, F, kappa = results(estParams, x)
     
     # Part E: implement Beta*log(RV) into the model
-    ...
-    
-    
-
+    vol = RV['rv5_ss']
+    logRV = np.log(vol)
+    newObs = logRV + kappa
     
 ###########################################################
 ### call main
