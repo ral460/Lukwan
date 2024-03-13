@@ -158,6 +158,9 @@ def RVdata():
     RV = RV.reset_index(drop=True)
 
     y = RV['Log Returns'].values
+    
+    # y = np.log(RV['open_price'] / RV['close_price'])
+    
     plt.figure(figsize=(10, 6))
     plt.plot(y - np.mean(y), c = 'black')
     plt.show()
@@ -202,7 +205,8 @@ def results(estParams, x):
     plt.plot(np.exp(alpha/2))
     plt.show()
     
-    return v, F, kappa
+    return v, F, kappa, sigma2_eta, psi
+
 
 def main():
    
@@ -217,18 +221,37 @@ def main():
     
     # Part C & D
     estParams = estimate(x)
-    v, F, kappa = results(estParams, x)
+    v, F, kappa, sigma2_eta, psi = results(estParams, x)
         
     # Part E: revisit A-D with S&P 500 data
     RV, ySP = RVdata()
     x = b(ySP)
     estParams = estimate(x)
-    v, F, kappa = results(estParams, x)
+    v, F, kappa, sigma2_eta, psi = results(estParams, x)
     
     # Part E: implement Beta*log(RV) into the model
     vol = RV['rv5_ss']
     logRV = np.log(vol)
-    newObs = logRV + kappa
+    X = logRV + kappa
+    
+    P,a,X_star,F1,K = kalmanFilter(X ,kappa, sigma2_eta, psi)
+    
+    beta_hat = np.multiply(1/(np.sum(np.multiply(np.multiply(np.transpose(X_star),1/(F)),X_star))),np.sum(np.multiply(np.multiply(np.transpose(X_star),1/(F)),v)))
+    print(beta_hat)
+    
+    plt.figure(figsize=(12, 6))
+    plt.plot(X_star[6:], c = 'black')
+    plt.show()
+    
+    plt.figure(figsize=(12, 6))
+    plt.plot(v, c = 'black')
+    plt.show()
+    
+    print(np.std(v))
+    print(np.std(X_star))
+
+    
+    
     
 ###########################################################
 ### call main
