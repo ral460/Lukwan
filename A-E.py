@@ -44,6 +44,7 @@ def aa(df):
     
     return y
     
+
 def b(y, unique_years, RV):
     #Apply data transformation 
     mu = np.mean(y)
@@ -113,6 +114,7 @@ def llllm(params, y, Beta, logRV):
     ll = len(y)*0.5*np.log(2*np.pi) + 0.5*sum((np.log(F) + ((v**2))/(F)))
     return ll
 
+
 def estimate(y, Beta, logRV):
     xt = y[:len(y)-1]
     xt_1 = y[1:]
@@ -134,6 +136,7 @@ def estimate(y, Beta, logRV):
     
     return estParams
     
+
 def kalmanSmoothing(y,P,a,v,F,K):
     r = np.zeros(len(P)+1)
     N = np.zeros(len(P)+1)
@@ -150,6 +153,7 @@ def kalmanSmoothing(y,P,a,v,F,K):
         V[i] = P[i] - ((P[i]**2) * N[i])
     #
     return alpha,V,r[1:],N[1:]
+
 
 def RVdata():
     RV = pd.read_csv('C:/Users/rafam/Downloads/EOR/Master/P4/TS/Assignment 2/realized_volatility.csv')
@@ -199,6 +203,7 @@ def RVdata():
         
     return RV, y, unique_years
 
+
 def results(estParams, x, Beta, logRV, unique_years, RV):
     kappa, sigma2_eta, psi = [param for param in estParams]
     print('kappa is', kappa)
@@ -241,6 +246,7 @@ def results(estParams, x, Beta, logRV, unique_years, RV):
     plt.show()
     
     return a, v, F, kappa, sigma2_eta, psi
+
 
 def tests(v, vNew, F, FNew, logRV, ySP, unique_years, RV):
     # Tests etc.
@@ -330,9 +336,8 @@ def bootstrapFilter(sigma,mu,psi,sigma2_eta,y,a):
     plt.show()
      
     return x
-    
 
-
+   
 def main():
     
     beta_hat = None
@@ -370,9 +375,11 @@ def main():
     beta_hat = np.multiply(1/(np.sum(np.multiply(np.multiply(np.transpose(X_star),1/(F_sp)),X_star))),np.sum(np.multiply(np.multiply(np.transpose(X_star),1/(F_sp)),v_sp)))
     print(beta_hat)
     
-    # No need to re estimate paramteres
-    # estParams = estimate(x, beta_hat, logRV)
+    # Without re estimating paramteres    
+    aNew, vNew, FNew, kappaNew, sigma2_etaNew, psiNew = results(estParams, x, beta_hat, logRV, unique_years, RV)
     
+    # With re estimating paramteres
+    estParams = estimate(x, beta_hat, logRV)
     aNew, vNew, FNew, kappaNew, sigma2_etaNew, psiNew = results(estParams, x, beta_hat, logRV, unique_years, RV)
     
     tests(v_sp, vNew, F_sp, FNew, logRV, ySP, unique_years, RV)
@@ -383,7 +390,7 @@ def main():
     
     bootstrapFilter(sigma,mu,psi,sigma2_eta,y,a)
     
-    #part F  S&P500
+    # Part F  S&P500
     sigma = np.sqrt(np.exp(kappa_sp + 1.27))
     mu = np.mean(ySP)
 
