@@ -324,7 +324,7 @@ def bootstrapFilter(sigma,mu,psi,sigma2_eta,y,a):
         alpha = np.random.choice(alpha,len(alpha),p=norm_w)
         alpha = np.random.normal(psi* alpha, np.sqrt(sigma2_eta),10000)
         
-    plt.figure(figsize=(7.5, 4))
+    plt.figure(figsize=(12, 6))
     plt.plot(a)
     plt.plot(x, c='red')
     plt.show()
