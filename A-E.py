@@ -248,7 +248,7 @@ def results(estParams, x, Beta, logRV, unique_years, RV):
     return a, v, F, kappa, sigma2_eta, psi
 
 
-def tests(v, vNew, F, FNew, logRV, ySP, unique_years, RV):
+def tests(v, vNew, F, FNew, vUpdate, FUpdate, logRV, ySP, unique_years, RV):
     # Tests etc.
     
     t_statistic, p_value = ttest_ind(v, vNew)
@@ -270,6 +270,18 @@ def tests(v, vNew, F, FNew, logRV, ySP, unique_years, RV):
     plt.figure(figsize=(12, 6))
     plt.plot(RV['date'], F, c = 'red')
     plt.plot(RV['date'], FNew, c = 'black')
+    plt.xticks([pd.Timestamp(f'{year}-01-01') for year in unique_years], unique_years)
+    plt.show()
+    
+    plt.figure(figsize=(12, 6))
+    plt.plot(RV['date'], v, c = 'red')
+    plt.plot(RV['date'], vUpdate, c = 'black')
+    plt.xticks([pd.Timestamp(f'{year}-01-01') for year in unique_years], unique_years)
+    plt.show()
+    
+    plt.figure(figsize=(12, 6))
+    plt.plot(RV['date'], F, c = 'red')
+    plt.plot(RV['date'], FUpdate, c = 'black')
     plt.xticks([pd.Timestamp(f'{year}-01-01') for year in unique_years], unique_years)
     plt.show()
     
@@ -380,9 +392,9 @@ def main():
     
     # With re estimating paramteres
     estParams = estimate(x, beta_hat, logRV)
-    aNew, vNew, FNew, kappaNew, sigma2_etaNew, psiNew = results(estParams, x, beta_hat, logRV, unique_years, RV)
+    aUpdate, vUpdate, FUpdate, kappaUpdate, sigma2_etaUpdate, psiUpdate = results(estParams, x, beta_hat, logRV, unique_years, RV)
     
-    tests(v_sp, vNew, F_sp, FNew, logRV, ySP, unique_years, RV)
+    tests(v_sp, vNew, F_sp, FNew, vUpdate, FUpdate, logRV, ySP, unique_years, RV)
     
     # Part F  SV Data
     sigma = np.sqrt(np.exp(kappa + 1.27))
